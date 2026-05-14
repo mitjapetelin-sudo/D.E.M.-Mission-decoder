@@ -25,6 +25,12 @@
     .dem-title { margin: 0 0 4px; font-size: 22px; font-weight: 500; color: #e8dcc4; }
     .dem-subtitle { margin: 0; font-size: 13px; color: #7a6c4c; }
 
+    .dem-wheel-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1rem;
+      perspective: 1200px;
+    }
     .dem-wheel-status {
       text-align: center;
       font-family: ui-monospace, 'SF Mono', Menlo, monospace;
@@ -32,13 +38,45 @@
       color: #c9a866;
       letter-spacing: 3px;
       margin-bottom: 1.5rem;
+      transition: color 0.4s;
     }
     .dem-wheel-status strong { color: #f0d488; font-weight: 600; font-size: 16px; }
+    .dem-wheel-status.spinning { color: #f0d488; }
+    .dem-wheel-status.victory { color: #ffe5a0; }
+
+    #dem-inner-disc {
+      transition: transform 1.5s cubic-bezier(0.17, 0.84, 0.44, 1);
+      transform-origin: 0 0;
+    }
+    #dem-inner-disc.victory-spin {
+      transition: transform 2.5s cubic-bezier(0.17, 0.92, 0.45, 1);
+    }
+    #dem-inner-disc.wiggle {
+      animation: dem-wiggle 0.4s ease-in-out;
+    }
+    @keyframes dem-wiggle {
+      0%   { transform: rotate(var(--base-rotation)); }
+      20%  { transform: rotate(calc(var(--base-rotation) - 12deg)); }
+      40%  { transform: rotate(calc(var(--base-rotation) + 10deg)); }
+      60%  { transform: rotate(calc(var(--base-rotation) - 6deg)); }
+      80%  { transform: rotate(calc(var(--base-rotation) + 3deg)); }
+      100% { transform: rotate(var(--base-rotation)); }
+    }
+
+    #dem-wheel.victory-glow {
+      filter: drop-shadow(0 0 30px rgba(240, 212, 136, 0.8));
+      transition: filter 1s ease-in;
+    }
 
     .dem-field-block { margin-bottom: 14px; }
     .dem-label {
       font-size: 12px; color: #8a7c5c; display: block;
       margin-bottom: 6px; letter-spacing: 0.3px;
+    }
+    .dem-hint {
+      font-size: 11px; color: #5a4c30;
+      margin-top: -2px; margin-bottom: 6px;
+      font-style: italic;
     }
 
     .dem-input, .dem-textarea {
@@ -53,8 +91,8 @@
       outline: none; border-color: #c9a866; background: #14100a;
     }
 
-    /* Letter animation in solution overlay */
-    .dem-solution-display {
+    /* Merged solution field: looks like a textarea, holds the letter animation */
+    .dem-solution-field {
       width: 100%; box-sizing: border-box;
       background: #0a0804; color: #c4b894;
       border: 1px solid #2a1f10; padding: 10px 12px;
@@ -64,9 +102,15 @@
       word-wrap: break-word;
       white-space: pre-wrap;
       line-height: 1.6;
+      outline: none;
+      overflow-wrap: break-word;
     }
-    .dem-solution-display:focus-within { border-color: #c9a866; }
-
+    .dem-solution-field:focus { border-color: #c9a866; background: #14100a; }
+    .dem-solution-field:empty::before {
+      content: attr(data-placeholder);
+      color: #3a2e18;
+      pointer-events: none;
+    }
     .dem-letter {
       display: inline-block;
       animation: dem-letter-spin 0.25s ease-out;
@@ -207,7 +251,7 @@
           <p class="dem-subtitle">Enter the clue you found to decode it.</p>
         </div>
 
-        <div style="display: flex; justify-content: center; margin-bottom: 1rem;">
+        <div class="dem-wheel-wrap">
           <svg id="dem-wheel" viewBox="-180 -180 360 360" width="320" height="320" style="user-select: none;">
             <defs>
               <radialGradient id="dem-outerWood" cx="50%" cy="50%" r="50%">
@@ -239,7 +283,7 @@
           </svg>
         </div>
 
-        <div class="dem-wheel-status">
+        <div class="dem-wheel-status" id="dem-wheel-status">
           <strong>A → D</strong>
         </div>
 
@@ -252,9 +296,15 @@
           </div>
 
           <div class="dem-field-block">
-            <label class="dem-label" for="dem-plain">2. Your decoded solution (edit if needed before submitting)</label>
-            <div class="dem-solution-display" id="dem-plain-display" aria-live="polite"></div>
-            <textarea id="dem-plain" class="dem-textarea" rows="2" placeholder="The decoded message will appear here" style="margin-top: 8px;"></textarea>
+            <label class="dem-label" for="dem-plain">2. Your final solution</label>
+            <div class="dem-hint">Auto-fills when you decode above. You can also type or paste directly.</div>
+            <div id="dem-plain"
+                 class="dem-solution-field"
+                 contenteditable="true"
+                 spellcheck="false"
+                 role="textbox"
+                 aria-multiline="true"
+                 data-placeholder="The decoded message will appear here, or type a solution you already know"></div>
           </div>
 
           <div id="dem-name-fields">
@@ -320,10 +370,12 @@
 
     const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     const SHIFT = 3;
+    const BASE_ROTATION = SHIFT * (360 / 26);
     const VICTORY = 'DEUS EX MACHINA';
     const LS_NAME_KEY = 'dem_agent_name';
 
     let CLUES = [];
+    const ownSubmissionIds = new Set();
 
     async function loadClues() {
       try {
@@ -357,14 +409,12 @@
       return 'no';
     }
 
-    // ========================================
-    // WHEEL — locked at +3 (A → D)
-    // ========================================
+    const wheelSvg = document.getElementById('dem-wheel');
     const outerRing = document.getElementById('dem-outer-ring');
     const innerRing = document.getElementById('dem-inner-ring');
     const innerDisc = document.getElementById('dem-inner-disc');
+    const wheelStatus = document.getElementById('dem-wheel-status');
     const plainEl = document.getElementById('dem-plain');
-    const plainDisplay = document.getElementById('dem-plain-display');
     const cipherEl = document.getElementById('dem-cipher');
 
     for (let i = 0; i < 26; i++) {
@@ -388,8 +438,65 @@
       innerRing.appendChild(t);
     }
 
-    // Lock wheel at +3
-    innerDisc.setAttribute('transform', 'rotate(' + (SHIFT * (360/26)) + ')');
+    let currentRotation = BASE_ROTATION;
+    function applyTransform(deg) {
+      innerDisc.style.transform = 'rotate(' + deg + 'deg)';
+    }
+    applyTransform(currentRotation);
+    innerDisc.style.setProperty('--base-rotation', BASE_ROTATION + 'deg');
+
+    function spinWheel(options) {
+      const rotations = options.rotations || (2 + Math.floor(Math.random() * 3));
+      const direction = Math.random() < 0.5 ? 1 : -1;
+      const targetRotation = currentRotation + (direction * rotations * 360);
+
+      innerDisc.classList.remove('wiggle');
+      if (options.dramatic) {
+        innerDisc.classList.add('victory-spin');
+      } else {
+        innerDisc.classList.remove('victory-spin');
+      }
+
+      wheelStatus.classList.add('spinning');
+
+      const intermediate = targetRotation + (Math.random() * 360 - 180);
+      applyTransform(intermediate);
+
+      const duration = options.dramatic ? 2500 : 1500;
+      setTimeout(() => {
+        innerDisc.style.transition = 'none';
+        applyTransform(BASE_ROTATION);
+        currentRotation = BASE_ROTATION;
+        void innerDisc.offsetWidth;
+        innerDisc.style.transition = '';
+        innerDisc.classList.remove('victory-spin');
+        wheelStatus.classList.remove('spinning');
+        if (options.onComplete) options.onComplete();
+      }, duration);
+    }
+
+    function wiggleWheel() {
+      innerDisc.classList.remove('wiggle');
+      void innerDisc.offsetWidth;
+      innerDisc.classList.add('wiggle');
+      setTimeout(() => {
+        innerDisc.classList.remove('wiggle');
+      }, 500);
+    }
+
+    function victorySpin(onComplete) {
+      wheelSvg.classList.add('victory-glow');
+      wheelStatus.classList.add('victory');
+      spinWheel({
+        rotations: 5 + Math.floor(Math.random() * 3),
+        dramatic: true,
+        onComplete: () => {
+          setTimeout(() => {
+            if (onComplete) onComplete();
+          }, 400);
+        }
+      });
+    }
 
     function shiftLetters(text, n) {
       return text.toUpperCase().split('').map(ch => {
@@ -398,36 +505,56 @@
       }).join('');
     }
 
-    // Animated solution display
-    function renderSolution(text) {
-      plainDisplay.innerHTML = '';
+    // ========================================
+    // MERGED SOLUTION FIELD
+    // contenteditable div that:
+    // - Auto-fills with decoded letters (with spin animation) when cipher changes
+    // - Allows direct typing/pasting
+    // - Provides the value for submission
+    // ========================================
+    function getSolutionValue() {
+      return plainEl.innerText || plainEl.textContent || '';
+    }
+
+    function setSolutionValueAnimated(text) {
+      plainEl.innerHTML = '';
       for (let i = 0; i < text.length; i++) {
         const span = document.createElement('span');
         span.className = 'dem-letter';
         span.textContent = text[i];
         span.style.animationDelay = (i * 0.03) + 's';
-        plainDisplay.appendChild(span);
+        plainEl.appendChild(span);
       }
     }
 
+    function setSolutionValuePlain(text) {
+      plainEl.textContent = text;
+    }
+
+    // Track whether the user is typing directly in the solution field
+    let userTypingInSolution = false;
+
+    plainEl.addEventListener('focus', () => { userTypingInSolution = true; });
+    plainEl.addEventListener('blur', () => { userTypingInSolution = false; });
+    plainEl.addEventListener('input', () => {
+      // When user types directly, the value is what they typed.
+      // Don't sync to cipher field (the cipher field is for input, not derived)
+      // We just leave it alone — what's in plainEl is now the source of truth
+    });
+
+    // Cipher input → decode → animate into solution field
     let previousDecoded = '';
-    function syncFromCipher() {
+    cipherEl.addEventListener('input', () => {
       const decoded = shiftLetters(cipherEl.value, -SHIFT);
-      plainEl.value = decoded;
-      // Only re-render the visual display if decoded changed
       if (decoded !== previousDecoded) {
-        renderSolution(decoded);
+        // Only auto-populate if the user isn't actively typing in the solution
+        // OR if the cipher is empty (clearing should clear both)
+        if (!userTypingInSolution || cipherEl.value === '') {
+          setSolutionValueAnimated(decoded);
+        }
         previousDecoded = decoded;
       }
-    }
-    function syncFromPlain() {
-      cipherEl.value = shiftLetters(plainEl.value, SHIFT);
-      previousDecoded = plainEl.value;
-      renderSolution(plainEl.value);
-    }
-
-    cipherEl.addEventListener('input', syncFromCipher);
-    plainEl.addEventListener('input', syncFromPlain);
+    });
 
     // ========================================
     // SUBMISSION SYSTEM
@@ -478,7 +605,6 @@
     function escapeHTML(s) {
       return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
-
     function getTierForClueId(id) {
       const c = CLUES.find(c => c.id === id);
       return c ? c.tier : 'vague';
@@ -541,6 +667,12 @@
       return savedName;
     }
 
+    function clearInputFields() {
+      cipherEl.value = '';
+      plainEl.innerHTML = '';
+      previousDecoded = '';
+    }
+
     async function handleSubmit() {
       feedbackEl.className = 'dem-feedback';
       feedbackEl.innerHTML = '';
@@ -550,9 +682,9 @@
         showFeedback('warning', '⚠️ Please enter your first name and surname before submitting.');
         return;
       }
-      const submission = plainEl.value.trim();
+      const submission = getSolutionValue().trim();
       if (!submission) {
-        showFeedback('warning', '⚠️ Decode a clue first. The solution field is empty.');
+        showFeedback('warning', '⚠️ Decode a clue or type a solution before submitting.');
         return;
       }
 
@@ -580,11 +712,14 @@
           const { data: stateData } = await supabase.from('mission_state').select('*').eq('id', 1).single();
           if (stateData && stateData.solved_by) {
             missionSolved = stateData;
-            showVictory(stateData.solved_by, formatTimeFromISO(stateData.solved_at));
+            victorySpin(() => {
+              showVictory(stateData.solved_by, formatTimeFromISO(stateData.solved_at));
+            });
           }
         } catch (err) {
           console.error(err);
           showFeedback('error', '❌ Connection error. Try again.');
+          wiggleWheel();
         }
         submitBtn.disabled = false;
         return;
@@ -592,6 +727,7 @@
 
       if (isFuzzyMatch(submission, VICTORY) === 'fuzzy') {
         showFeedback('warning', '⚠️ <strong>Are you sure you didn\'t misspell?</strong> Re-check your letters against the wheel.');
+        wiggleWheel();
         return;
       }
 
@@ -601,22 +737,27 @@
           const existing = solvedClues.find(s => s.clue_id === c.id);
           if (existing) {
             showFeedback('info', '✓ This transmission was already recovered by <strong>' + escapeHTML(existing.agent_name) + '</strong> at ' + formatTimeFromISO(existing.created_at) + '.');
+            wiggleWheel();
             return;
           }
           submitBtn.disabled = true;
           try {
-            const { error } = await supabase
+            const { data: insertData, error } = await supabase
               .from('submissions')
-              .insert({ clue_id: c.id, solution: c.sol, agent_name: name });
+              .insert({ clue_id: c.id, solution: c.sol, agent_name: name })
+              .select()
+              .single();
             if (error) throw error;
+            if (insertData && insertData.id) {
+              ownSubmissionIds.add(insertData.id);
+            }
             showFeedback('success', '🔓 <strong>Transmission confirmed.</strong> "' + escapeHTML(c.sol) + '" added to the intelligence feed.');
-            cipherEl.value = '';
-            plainEl.value = '';
-            renderSolution('');
-            previousDecoded = '';
+            clearInputFields();
+            spinWheel({ rotations: 2 + Math.floor(Math.random() * 3) });
           } catch (err) {
             console.error(err);
             showFeedback('error', '❌ Connection error. Try again.');
+            wiggleWheel();
           }
           submitBtn.disabled = false;
           return;
@@ -626,11 +767,13 @@
       for (let i = 0; i < CLUES.length; i++) {
         if (isFuzzyMatch(submission, CLUES[i].sol) === 'fuzzy') {
           showFeedback('warning', '⚠️ <strong>Are you sure you didn\'t misspell?</strong> Re-check your letters and the decoded result against your wheel.');
+          wiggleWheel();
           return;
         }
       }
 
       showFeedback('error', '❌ <strong>Unrecognized transmission.</strong> Re-check the letters of your clue. A villain may have planted a false one.');
+      wiggleWheel();
     }
 
     submitBtn.addEventListener('click', handleSubmit);
@@ -656,9 +799,13 @@
     function subscribeRealtime() {
       supabase.channel('submissions-changes')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'submissions' }, (payload) => {
+          const isOwnSubmission = ownSubmissionIds.has(payload.new.id);
           if (!solvedClues.find(s => s.id === payload.new.id)) {
             solvedClues.unshift(payload.new);
             renderFeed();
+            if (!isOwnSubmission) {
+              spinWheel({ rotations: 2 + Math.floor(Math.random() * 2) });
+            }
           }
         })
         .subscribe();
@@ -667,7 +814,9 @@
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'mission_state' }, (payload) => {
           if (payload.new.solved_by && !missionSolved) {
             missionSolved = payload.new;
-            showVictory(payload.new.solved_by, formatTimeFromISO(payload.new.solved_at));
+            victorySpin(() => {
+              showVictory(payload.new.solved_by, formatTimeFromISO(payload.new.solved_at));
+            });
           }
         })
         .subscribe();
