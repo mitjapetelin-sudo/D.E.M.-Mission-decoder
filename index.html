@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>D.E.M. Mission · FH Conference 2026</title>
+  <meta name="description" content="The Deus Ex Machina Mission decoder for the FH Conference 2026 at VSGT Maribor."/>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: #000000;
+      color: #c4b894;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+    .dem-root {
+      background: #000000;
+      padding: 2rem 1rem 1rem;
+      min-height: 100vh;
+    }
+    .dem-container { max-width: 720px; margin: 0 auto; }
+
+    .dem-header { text-align: center; margin-bottom: 1.5rem; }
+    .dem-classified {
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 11px; letter-spacing: 2px; color: #c9a866; margin-bottom: 6px;
+    }
+    .dem-title { margin: 0 0 4px; font-size: 22px; font-weight: 500; color: #e8dcc4; }
+    .dem-subtitle { margin: 0; font-size: 13px; color: #7a6c4c; }
+
+    .dem-position-display {
+      display: flex; justify-content: center; gap: 16px; margin-bottom: 1.5rem;
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px;
+    }
+    .dem-pos-cell { text-align: center; }
+    .dem-pos-label { color: #7a6c4c; font-size: 11px; letter-spacing: 1px; margin-bottom: 2px; }
+    .dem-pos-value { font-weight: 500; font-size: 18px; color: #c4b894; }
+    .dem-pos-sep { align-self: center; color: #5a4c2c; }
+
+    .dem-reset-btn {
+      background: #1a1408; color: #c9a866; border: 1px solid #6a5028;
+      padding: 6px 14px; font-size: 12px; font-family: inherit; cursor: pointer;
+      border-radius: 3px; letter-spacing: 0.5px;
+      align-self: center; margin-left: 8px;
+    }
+    .dem-reset-btn:hover { background: #2a1f10; border-color: #c9a866; }
+
+    .dem-field-block { margin-bottom: 14px; }
+    .dem-label {
+      font-size: 12px; color: #8a7c5c; display: block;
+      margin-bottom: 6px; letter-spacing: 0.3px;
+    }
+
+    .dem-input, .dem-textarea {
+      width: 100%; box-sizing: border-box;
+      background: #0a0804; color: #c4b894;
+      border: 1px solid #2a1f10; padding: 10px 12px;
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 13px; border-radius: 4px; resize: vertical;
+    }
+    .dem-input::placeholder, .dem-textarea::placeholder { color: #3a2e18; }
+    .dem-input:focus, .dem-textarea:focus {
+      outline: none; border-color: #c9a866; background: #14100a;
+    }
+
+    .dem-section {
+      margin-top: 1.5rem; padding: 1.5rem;
+      border: 1px solid #2a1f10; border-radius: 6px; background: #050302;
+    }
+    .dem-section-title {
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 13px; letter-spacing: 3px; color: #c9a866;
+      margin-bottom: 1.25rem; text-align: center; font-weight: 600;
+    }
+
+    .dem-submit-btn {
+      background: #d4a648; color: #1a0f04;
+      border: 2px solid #f0d488; padding: 18px 20px;
+      font-size: 16px; font-family: inherit; cursor: pointer;
+      border-radius: 5px; letter-spacing: 2px; width: 100%;
+      margin-top: 14px; font-weight: 800; text-transform: uppercase;
+      display: block;
+      box-shadow: 0 0 24px rgba(212, 166, 72, 0.5);
+    }
+    .dem-submit-btn:hover { background: #f0d488; box-shadow: 0 0 32px rgba(212, 166, 72, 0.7); }
+    .dem-submit-btn:active { background: #b88a30; }
+    .dem-submit-btn:disabled {
+      background: #4a3618; color: #2a1f10;
+      cursor: not-allowed; box-shadow: none;
+    }
+
+    .dem-feedback {
+      margin-top: 14px; padding: 12px 14px; border-radius: 4px;
+      font-size: 13px; line-height: 1.5; display: none;
+    }
+    .dem-feedback.success { background: #0e2a14; border: 1px solid #4a8a4a; color: #a8d4a8; display: block; }
+    .dem-feedback.warning { background: #2a1f08; border: 1px solid #a87838; color: #d4c084; display: block; }
+    .dem-feedback.error { background: #2a140e; border: 1px solid #a84838; color: #d49888; display: block; }
+    .dem-feedback.info { background: #0e1f2a; border: 1px solid #4878a8; color: #98b4d4; display: block; }
+
+    .dem-feed-item {
+      display: flex; align-items: baseline; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid #1a1408; font-size: 13px;
+    }
+    .dem-feed-icon { flex-shrink: 0; font-size: 14px; }
+    .dem-feed-time {
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 11px; color: #7a6c4c; flex-shrink: 0;
+    }
+    .dem-feed-solution {
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      color: #c4b894; flex: 1; font-weight: 500;
+    }
+    .dem-feed-name { font-size: 12px; color: #7a6c4c; flex-shrink: 0; }
+    .dem-feed-locked {
+      color: #3a2e18; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      letter-spacing: 2px;
+    }
+    .dem-feed-counter {
+      text-align: center; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 11px; color: #c9a866; margin-top: 1.25rem; letter-spacing: 1px;
+    }
+
+    .dem-name-saved {
+      background: #0a0804; border: 1px solid #2a1f10;
+      border-radius: 4px; padding: 10px 12px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .dem-name-saved-text { font-size: 13px; color: #7a6c4c; }
+    .dem-name-saved-text strong { color: #c9a866; font-weight: 600; margin-left: 4px; }
+    .dem-name-edit {
+      font-size: 11px; color: #7a6c4c; cursor: pointer; text-decoration: underline;
+      background: none; border: none; padding: 0; font-family: inherit;
+    }
+    .dem-name-edit:hover { color: #c9a866; }
+
+    .dem-victory {
+      text-align: center; padding: 2.5rem 1.5rem;
+      border: 2px solid #c9a866; border-radius: 6px;
+      background: #0a0604; margin-top: 2rem;
+      box-shadow: 0 0 40px rgba(201, 168, 102, 0.3);
+    }
+    .dem-victory-emoji { font-size: 56px; margin-bottom: 16px; }
+    .dem-victory-title {
+      font-size: 26px; font-weight: 600; letter-spacing: 5px;
+      color: #f0d488; margin: 0 0 20px;
+    }
+    .dem-victory-solver { font-size: 16px; color: #c4b894; margin: 12px 0; }
+    .dem-victory-solver strong { color: #f0d488; }
+    .dem-victory-phrase {
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 24px; letter-spacing: 7px; color: #f0d488;
+      margin: 24px 0; padding: 20px 16px;
+      border-top: 1px solid #c9a866; border-bottom: 1px solid #c9a866;
+    }
+    .dem-victory-message {
+      color: #c4b894; line-height: 1.6; margin: 20px auto;
+      max-width: 480px; font-size: 14px;
+    }
+    .dem-victory-message strong { color: #f0d488; }
+    .dem-victory-signoff {
+      margin-top: 1.5rem; font-style: italic; color: #7a6c4c; font-size: 13px;
+    }
+
+    .dem-loading {
+      text-align: center; padding: 1rem; color: #7a6c4c; font-size: 13px;
+    }
+
+    .dem-footer {
+      margin-top: 3rem; padding-top: 1.5rem;
+      border-top: 1px solid #1a1408; text-align: center;
+      font-size: 11px; color: #4a3e28; line-height: 1.7; letter-spacing: 0.3px;
+    }
+    .dem-footer-name { color: #8a7c5c; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div class="dem-root">
+    <div class="dem-container">
+
+      <div id="dem-main">
+        <div class="dem-header">
+          <div class="dem-classified">CLASSIFIED · AGENT Q</div>
+          <h2 class="dem-title">D.E.M. Mission decoder</h2>
+          <p class="dem-subtitle">Drag the inner ring to rotate. Enter the clue you found to decode it.</p>
+        </div>
+
+        <div style="display: flex; justify-content: center; margin-bottom: 1.25rem;">
+          <svg id="dem-wheel" viewBox="-180 -180 360 360" width="320" height="320" style="cursor: grab; touch-action: none; user-select: none;">
+            <defs>
+              <radialGradient id="dem-outerWood" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#c9974f"/>
+                <stop offset="70%" stop-color="#a87838"/>
+                <stop offset="100%" stop-color="#7d5520"/>
+              </radialGradient>
+              <radialGradient id="dem-innerWood" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#e3b574"/>
+                <stop offset="80%" stop-color="#c4904a"/>
+                <stop offset="100%" stop-color="#9a6a2e"/>
+              </radialGradient>
+              <radialGradient id="dem-centerWood" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#8a5a25"/>
+                <stop offset="100%" stop-color="#5a3a15"/>
+              </radialGradient>
+            </defs>
+            <circle cx="0" cy="0" r="170" fill="url(#dem-outerWood)" stroke="#5a3a15" stroke-width="1.5"/>
+            <circle cx="0" cy="0" r="165" fill="none" stroke="#5a3a15" stroke-width="0.5" opacity="0.4"/>
+            <g id="dem-outer-ring"></g>
+            <g id="dem-inner-disc">
+              <circle cx="0" cy="0" r="115" fill="url(#dem-innerWood)" stroke="#5a3a15" stroke-width="1.2"/>
+              <circle cx="0" cy="0" r="110" fill="none" stroke="#5a3a15" stroke-width="0.5" opacity="0.3"/>
+              <g id="dem-inner-ring"></g>
+              <circle cx="0" cy="0" r="38" fill="url(#dem-centerWood)" stroke="#3a2510" stroke-width="1"/>
+              <circle cx="0" cy="0" r="6" fill="#2a1808"/>
+            </g>
+            <polygon points="-10,-176 10,-176 0,-158" fill="#2a1808" stroke="#1a0f04" stroke-width="0.5"/>
+          </svg>
+        </div>
+
+        <div class="dem-position-display">
+          <div class="dem-pos-cell">
+            <div class="dem-pos-label">OUTER</div>
+            <div class="dem-pos-value" id="dem-outer-pos">A</div>
+          </div>
+          <div class="dem-pos-sep">→</div>
+          <div class="dem-pos-cell">
+            <div class="dem-pos-label">INNER</div>
+            <div class="dem-pos-value" id="dem-inner-pos">D</div>
+          </div>
+          <div class="dem-pos-sep">·</div>
+          <div class="dem-pos-cell">
+            <div class="dem-pos-label">SHIFT</div>
+            <div class="dem-pos-value" id="dem-shift-pos">+3</div>
+          </div>
+          <button class="dem-reset-btn" id="dem-reset-btn">Reset</button>
+        </div>
+
+        <div class="dem-section">
+          <div class="dem-section-title">★ DECODE &amp; SUBMIT ★</div>
+
+          <div class="dem-field-block">
+            <label class="dem-label" for="dem-cipher">1. Type in the letters of the clue you found</label>
+            <textarea id="dem-cipher" class="dem-textarea" rows="2" placeholder="e.g. WKH PDFKLQH KDV D QDPH"></textarea>
+          </div>
+
+          <div class="dem-field-block">
+            <label class="dem-label" for="dem-plain">2. Your decoded solution (edit if needed before submitting)</label>
+            <textarea id="dem-plain" class="dem-textarea" rows="2" placeholder="The decoded message will appear here"></textarea>
+          </div>
+
+          <div id="dem-name-fields">
+            <div class="dem-field-block">
+              <label class="dem-label" for="dem-firstname">3. First name</label>
+              <input id="dem-firstname" class="dem-input" type="text" placeholder="Your first name"/>
+            </div>
+            <div class="dem-field-block">
+              <label class="dem-label" for="dem-surname">4. Surname</label>
+              <input id="dem-surname" class="dem-input" type="text" placeholder="Your surname"/>
+            </div>
+          </div>
+
+          <div id="dem-name-saved-wrap" class="dem-name-saved" style="display: none;">
+            <div class="dem-name-saved-text">Agent: <strong id="dem-saved-name"></strong></div>
+            <button type="button" class="dem-name-edit" id="dem-edit-name">✏️ Change name</button>
+          </div>
+
+          <button type="button" class="dem-submit-btn" id="dem-submit-btn">Submit transmission</button>
+
+          <div id="dem-feedback" class="dem-feedback"></div>
+        </div>
+
+        <div class="dem-section">
+          <div class="dem-section-title">⚿ INTELLIGENCE FEED ⚿</div>
+          <div id="dem-feed">
+            <div class="dem-loading">Loading transmissions…</div>
+          </div>
+          <div class="dem-feed-counter" id="dem-feed-counter"></div>
+        </div>
+      </div>
+
+      <div id="dem-victory" style="display: none;">
+        <div class="dem-victory">
+          <div class="dem-victory-emoji">🎉</div>
+          <h2 class="dem-victory-title">MISSION ACCOMPLISHED</h2>
+          <div class="dem-victory-solver">
+            <strong id="dem-solver-name"></strong> cracked the D.E.M. Mission at <strong id="dem-solver-time"></strong>.
+          </div>
+          <div class="dem-victory-phrase">DEUS EX MACHINA</div>
+          <div class="dem-victory-message">
+            <strong>All agents — your jar lid is the key.</strong><br/>
+            Every letter matters. Keep your lid safe and bring it to the gala dinner tonight. Without it, the machine stays silent.
+          </div>
+          <div class="dem-victory-signoff">— Agent Q</div>
+        </div>
+      </div>
+
+      <div class="dem-footer">
+        Designed, built, and launched by <span class="dem-footer-name">Mr. Mitja Petelin</span><br/>
+        © 2026 Mitja Petelin · All rights reserved<br/>
+        Created for the FH Conference 2026 · VSGT Maribor
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.46.1/dist/umd/supabase.min.js"></script>
+
+  <script>
+  (function() {
+    // ========================================
+    // SUPABASE CONFIGURATION
+    // ========================================
+    const SUPABASE_URL = 'https://mzvmpjpucgymilbusatv.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_5TBU9gGTNMJ0tBf0YBw_MA_gjiKfAX_';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const VICTORY = 'DEUS EX MACHINA';
+    const LS_NAME_KEY = 'dem_agent_name';
+    const LS_REJECT_KEY = 'dem_rejections';
+    const LS_COOLDOWN_KEY = 'dem_cooldown';
+
+    let CLUES = [];
+
+    // Load clues from clues.json (editable on GitHub during conference)
+    async function loadClues() {
+      try {
+        const response = await fetch('clues.json?v=' + Date.now());
+        const data = await response.json();
+        CLUES = data.clues || [];
+      } catch (err) {
+        console.error('Failed to load clues:', err);
+        CLUES = [];
+      }
+    }
+
+    function normalize(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+    function editDist(a, b) {
+      if (a === b) return 0;
+      if (!a.length) return b.length;
+      if (!b.length) return a.length;
+      const m = [];
+      for (let i = 0; i <= b.length; i++) m[i] = [i];
+      for (let j = 0; j <= a.length; j++) m[0][j] = j;
+      for (let i = 1; i <= b.length; i++) for (let j = 1; j <= a.length; j++) {
+        m[i][j] = b[i-1] === a[j-1] ? m[i-1][j-1] : Math.min(m[i-1][j-1]+1, m[i][j-1]+1, m[i-1][j]+1);
+      }
+      return m[b.length][a.length];
+    }
+    function isFuzzyMatch(input, target) {
+      const n1 = normalize(input), n2 = normalize(target);
+      if (n1 === n2) return 'exact';
+      const threshold = Math.max(2, Math.floor(n2.length * 0.15));
+      if (editDist(n1, n2) <= threshold) return 'fuzzy';
+      return 'no';
+    }
+
+    // ========================================
+    // WHEEL
+    // ========================================
+    const wheel = document.getElementById('dem-wheel');
+    const innerDisc = document.getElementById('dem-inner-disc');
+    const outerRing = document.getElementById('dem-outer-ring');
+    const innerRing = document.getElementById('dem-inner-ring');
+    const outerPos = document.getElementById('dem-outer-pos');
+    const innerPos = document.getElementById('dem-inner-pos');
+    const shiftPos = document.getElementById('dem-shift-pos');
+    const plainEl = document.getElementById('dem-plain');
+    const cipherEl = document.getElementById('dem-cipher');
+    const resetBtn = document.getElementById('dem-reset-btn');
+
+    for (let i = 0; i < 26; i++) {
+      const a = (i * 360 / 26) - 90, r = a * Math.PI / 180;
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', Math.cos(r) * 142); t.setAttribute('y', Math.sin(r) * 142 + 5);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('font-size', '15'); t.setAttribute('font-weight', '500');
+      t.setAttribute('fill', '#2a1808'); t.setAttribute('font-family', 'ui-monospace, monospace');
+      t.textContent = ALPHA[i];
+      outerRing.appendChild(t);
+    }
+    for (let i = 0; i < 26; i++) {
+      const a = (i * 360 / 26) - 90, r = a * Math.PI / 180;
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', Math.cos(r) * 88); t.setAttribute('y', Math.sin(r) * 88 + 5);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('font-size', '14'); t.setAttribute('font-weight', '500');
+      t.setAttribute('fill', '#3a2510'); t.setAttribute('font-family', 'ui-monospace, monospace');
+      t.textContent = ALPHA[i];
+      innerRing.appendChild(t);
+    }
+
+    let currentShift = 3, isDragging = false, dragStartAngle = 0, dragStartShift = 0;
+
+    function applyRotation(shift) {
+      currentShift = ((shift % 26) + 26) % 26;
+      innerDisc.setAttribute('transform', 'rotate(' + (currentShift * (360/26)) + ')');
+      outerPos.textContent = 'A';
+      innerPos.textContent = ALPHA[currentShift];
+      shiftPos.textContent = currentShift === 0 ? '0' : '+' + currentShift;
+      syncFromCipher();
+    }
+    function shiftLetters(text, n) {
+      return text.toUpperCase().split('').map(ch => {
+        const i = ALPHA.indexOf(ch);
+        return i === -1 ? ch : ALPHA[(i + n + 26) % 26];
+      }).join('');
+    }
+    function syncFromCipher() { plainEl.value = shiftLetters(cipherEl.value, -currentShift); }
+    function syncFromPlain() { cipherEl.value = shiftLetters(plainEl.value, currentShift); }
+
+    function getAngle(evt) {
+      const rect = wheel.getBoundingClientRect();
+      const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+      const x = evt.touches ? evt.touches[0].clientX : evt.clientX;
+      const y = evt.touches ? evt.touches[0].clientY : evt.clientY;
+      return Math.atan2(y - cy, x - cx) * 180 / Math.PI;
+    }
+    wheel.addEventListener('mousedown', e => { e.preventDefault(); isDragging = true; wheel.style.cursor = 'grabbing'; dragStartAngle = getAngle(e); dragStartShift = currentShift; });
+    window.addEventListener('mousemove', e => { if (!isDragging) return; e.preventDefault(); applyRotation(dragStartShift + Math.round((getAngle(e) - dragStartAngle) / (360/26))); });
+    window.addEventListener('mouseup', () => { isDragging = false; wheel.style.cursor = 'grab'; });
+    wheel.addEventListener('touchstart', e => { e.preventDefault(); isDragging = true; dragStartAngle = getAngle(e); dragStartShift = currentShift; }, { passive: false });
+    window.addEventListener('touchmove', e => { if (!isDragging) return; e.preventDefault(); applyRotation(dragStartShift + Math.round((getAngle(e) - dragStartAngle) / (360/26))); }, { passive: false });
+    window.addEventListener('touchend', () => { isDragging = false; });
+
+    cipherEl.addEventListener('input', syncFromCipher);
+    plainEl.addEventListener('input', syncFromPlain);
+    resetBtn.addEventListener('click', () => applyRotation(3));
+    applyRotation(3);
+
+    // ========================================
+    // SUBMISSION SYSTEM
+    // ========================================
+    const firstnameEl = document.getElementById('dem-firstname');
+    const surnameEl = document.getElementById('dem-surname');
+    const nameFieldsEl = document.getElementById('dem-name-fields');
+    const nameSavedWrap = document.getElementById('dem-name-saved-wrap');
+    const savedNameEl = document.getElementById('dem-saved-name');
+    const editNameBtn = document.getElementById('dem-edit-name');
+    const submitBtn = document.getElementById('dem-submit-btn');
+    const feedbackEl = document.getElementById('dem-feedback');
+    const feedEl = document.getElementById('dem-feed');
+    const feedCounterEl = document.getElementById('dem-feed-counter');
+    const mainEl = document.getElementById('dem-main');
+    const victoryEl = document.getElementById('dem-victory');
+
+    let solvedClues = [];
+    let missionSolved = null;
+    let savedName = localStorage.getItem(LS_NAME_KEY) || '';
+
+    function loadName() {
+      if (savedName) {
+        nameFieldsEl.style.display = 'none';
+        nameSavedWrap.style.display = 'flex';
+        savedNameEl.textContent = savedName;
+      } else {
+        nameFieldsEl.style.display = 'block';
+        nameSavedWrap.style.display = 'none';
+      }
+    }
+
+    editNameBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      savedName = '';
+      localStorage.removeItem(LS_NAME_KEY);
+      firstnameEl.value = '';
+      surnameEl.value = '';
+      loadName();
+    });
+
+    function showFeedback(type, msg) {
+      feedbackEl.className = 'dem-feedback ' + type;
+      feedbackEl.innerHTML = msg;
+    }
+    function formatTime(d) { return d.toTimeString().slice(0, 5); }
+    function formatTimeFromISO(iso) {
+      return new Date(iso).toTimeString().slice(0, 5);
+    }
+    function escapeHTML(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function renderFeed() {
+      feedEl.innerHTML = '';
+      const submittedIds = new Set(solvedClues.map(c => c.clue_id));
+      const totalClues = CLUES.length;
+
+      if (solvedClues.length === 0) {
+        feedEl.innerHTML = '<div style="text-align:center;color:#3a2e18;font-size:12px;padding:1rem;">No transmissions recovered yet.</div>';
+      } else {
+        // Sort newest first
+        const sorted = [...solvedClues].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+        sorted.forEach(c => {
+          const item = document.createElement('div');
+          item.className = 'dem-feed-item';
+          item.innerHTML = '<span class="dem-feed-icon">🔓</span>' +
+            '<span class="dem-feed-time">' + formatTimeFromISO(c.created_at) + '</span>' +
+            '<span class="dem-feed-solution">' + escapeHTML(c.solution) + '</span>' +
+            '<span class="dem-feed-name">— ' + escapeHTML(c.agent_name) + '</span>';
+          feedEl.appendChild(item);
+        });
+      }
+
+      const remaining = totalClues - solvedClues.length;
+      if (remaining > 0) {
+        for (let i = 0; i < Math.min(remaining, 3); i++) {
+          const item = document.createElement('div');
+          item.className = 'dem-feed-item';
+          item.innerHTML = '<span class="dem-feed-icon">🔒</span><span class="dem-feed-locked">▓▓▓▓ ▓▓▓▓ ▓▓▓▓▓</span>';
+          feedEl.appendChild(item);
+        }
+        if (remaining > 3) {
+          const more = document.createElement('div');
+          more.style.cssText = 'text-align:center;color:#3a2e18;font-size:11px;padding:6px 0;';
+          more.textContent = '+ ' + (remaining - 3) + ' more in the field';
+          feedEl.appendChild(more);
+        }
+      }
+      feedCounterEl.textContent = solvedClues.length + ' of ' + totalClues + ' transmissions recovered';
+    }
+
+    function showVictory(name, time) {
+      document.getElementById('dem-solver-name').textContent = name;
+      document.getElementById('dem-solver-time').textContent = time;
+      mainEl.style.display = 'none';
+      victoryEl.style.display = 'block';
+    }
+
+    function getName() {
+      if (savedName) return savedName;
+      const f = firstnameEl.value.trim();
+      const s = surnameEl.value.trim();
+      if (!f || !s) return null;
+      savedName = f + ' ' + s;
+      localStorage.setItem(LS_NAME_KEY, savedName);
+      loadName();
+      return savedName;
+    }
+
+    function getCooldown() {
+      const v = localStorage.getItem(LS_COOLDOWN_KEY);
+      return v ? parseInt(v, 10) : 0;
+    }
+    function getRejectCount() {
+      const v = localStorage.getItem(LS_REJECT_KEY);
+      return v ? parseInt(v, 10) : 0;
+    }
+    function incrementReject() {
+      const n = getRejectCount() + 1;
+      localStorage.setItem(LS_REJECT_KEY, String(n));
+      if (n >= 3) {
+        localStorage.setItem(LS_COOLDOWN_KEY, String(Date.now() + 30 * 60 * 1000));
+        localStorage.setItem(LS_REJECT_KEY, '0');
+      }
+    }
+
+    async function handleSubmit() {
+      feedbackEl.className = 'dem-feedback';
+      feedbackEl.innerHTML = '';
+
+      const cooldown = getCooldown();
+      if (Date.now() < cooldown) {
+        const sec = Math.ceil((cooldown - Date.now()) / 1000);
+        const min = Math.floor(sec / 60), s = sec % 60;
+        showFeedback('error', '⏳ <strong>Cooldown active.</strong> Try again in ' + min + ':' + String(s).padStart(2,'0') + '.');
+        return;
+      }
+      const name = getName();
+      if (!name) {
+        showFeedback('warning', '⚠️ Please enter your first name and surname before submitting.');
+        return;
+      }
+      const submission = plainEl.value.trim();
+      if (!submission) {
+        showFeedback('warning', '⚠️ Decode a clue first. The solution field is empty.');
+        return;
+      }
+
+      const normSub = normalize(submission);
+      const normVictory = normalize(VICTORY);
+
+      if (missionSolved) {
+        if (normSub === normVictory) {
+          showFeedback('info', '✓ <strong>Mission already solved by ' + escapeHTML(missionSolved.solved_by) + '</strong> at ' + formatTimeFromISO(missionSolved.solved_at) + '. Bring your jar lid to the gala.');
+        } else {
+          showFeedback('info', 'The mission has already been solved by ' + escapeHTML(missionSolved.solved_by) + '. Bring your jar lid to the gala.');
+        }
+        return;
+      }
+
+      // Victory exact match
+      if (normSub === normVictory) {
+        submitBtn.disabled = true;
+        try {
+          const nowISO = new Date().toISOString();
+          const { error } = await supabase
+            .from('mission_state')
+            .update({ solved_by: name, solved_at: nowISO })
+            .eq('id', 1)
+            .is('solved_by', null);
+          if (error) throw error;
+          // Re-check whether we actually got it (someone else might have raced us)
+          const { data: stateData } = await supabase.from('mission_state').select('*').eq('id', 1).single();
+          if (stateData && stateData.solved_by) {
+            missionSolved = stateData;
+            showVictory(stateData.solved_by, formatTimeFromISO(stateData.solved_at));
+          }
+        } catch (err) {
+          console.error(err);
+          showFeedback('error', '❌ Connection error. Try again.');
+        }
+        submitBtn.disabled = false;
+        return;
+      }
+
+      // Fuzzy on victory
+      if (isFuzzyMatch(submission, VICTORY) === 'fuzzy') {
+        incrementReject();
+        showFeedback('warning', '⚠️ <strong>Are you sure you didn\'t misspell?</strong> Re-check your letters against the wheel.');
+        return;
+      }
+
+      // Exact clue match
+      for (let i = 0; i < CLUES.length; i++) {
+        const c = CLUES[i];
+        if (normalize(c.sol) === normSub) {
+          const existing = solvedClues.find(s => s.clue_id === c.id);
+          if (existing) {
+            showFeedback('info', '✓ This transmission was already recovered by <strong>' + escapeHTML(existing.agent_name) + '</strong> at ' + formatTimeFromISO(existing.created_at) + '.');
+            return;
+          }
+          submitBtn.disabled = true;
+          try {
+            const { error } = await supabase
+              .from('submissions')
+              .insert({ clue_id: c.id, solution: c.sol, agent_name: name });
+            if (error) throw error;
+            showFeedback('success', '🔓 <strong>Transmission confirmed.</strong> "' + escapeHTML(c.sol) + '" added to the intelligence feed.');
+            cipherEl.value = '';
+            plainEl.value = '';
+          } catch (err) {
+            console.error(err);
+            showFeedback('error', '❌ Connection error. Try again.');
+          }
+          submitBtn.disabled = false;
+          return;
+        }
+      }
+
+      // Fuzzy on any clue
+      for (let i = 0; i < CLUES.length; i++) {
+        if (isFuzzyMatch(submission, CLUES[i].sol) === 'fuzzy') {
+          incrementReject();
+          showFeedback('warning', '⚠️ <strong>Are you sure you didn\'t misspell?</strong> Re-check your letters and the decoded result against your wheel.');
+          return;
+        }
+      }
+
+      incrementReject();
+      showFeedback('error', '❌ <strong>Unrecognized transmission.</strong> Re-check the letters of your clue. A villain may have planted a false one.');
+    }
+
+    submitBtn.addEventListener('click', handleSubmit);
+
+    // ========================================
+    // INITIAL LOAD + REAL-TIME SUBSCRIPTIONS
+    // ========================================
+    async function fetchInitialState() {
+      try {
+        const [{ data: subs }, { data: state }] = await Promise.all([
+          supabase.from('submissions').select('*').order('created_at', { ascending: false }),
+          supabase.from('mission_state').select('*').eq('id', 1).single()
+        ]);
+        solvedClues = subs || [];
+        if (state && state.solved_by) {
+          missionSolved = state;
+          showVictory(state.solved_by, formatTimeFromISO(state.solved_at));
+        }
+        renderFeed();
+      } catch (err) {
+        console.error('Failed initial load:', err);
+        feedEl.innerHTML = '<div class="dem-loading" style="color:#a84838;">Connection error. Refresh to retry.</div>';
+      }
+    }
+
+    function subscribeRealtime() {
+      supabase.channel('submissions-changes')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'submissions' }, (payload) => {
+          if (!solvedClues.find(s => s.id === payload.new.id)) {
+            solvedClues.unshift(payload.new);
+            renderFeed();
+          }
+        })
+        .subscribe();
+
+      supabase.channel('mission-state-changes')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'mission_state' }, (payload) => {
+          if (payload.new.solved_by && !missionSolved) {
+            missionSolved = payload.new;
+            showVictory(payload.new.solved_by, formatTimeFromISO(payload.new.solved_at));
+          }
+        })
+        .subscribe();
+    }
+
+    (async function init() {
+      loadName();
+      await loadClues();
+      await fetchInitialState();
+      subscribeRealtime();
+    })();
+  })();
+  </script>
+</body>
+</html>
