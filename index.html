@@ -14,11 +14,7 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       min-height: 100vh;
     }
-    .dem-root {
-      background: #000000;
-      padding: 2rem 1rem 1rem;
-      min-height: 100vh;
-    }
+    .dem-root { background: #000000; padding: 2rem 1rem 1rem; min-height: 100vh; }
     .dem-container { max-width: 720px; margin: 0 auto; }
 
     .dem-header { text-align: center; margin-bottom: 1.5rem; }
@@ -29,22 +25,15 @@
     .dem-title { margin: 0 0 4px; font-size: 22px; font-weight: 500; color: #e8dcc4; }
     .dem-subtitle { margin: 0; font-size: 13px; color: #7a6c4c; }
 
-    .dem-position-display {
-      display: flex; justify-content: center; gap: 16px; margin-bottom: 1.5rem;
-      font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px;
+    .dem-wheel-status {
+      text-align: center;
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 13px;
+      color: #c9a866;
+      letter-spacing: 3px;
+      margin-bottom: 1.5rem;
     }
-    .dem-pos-cell { text-align: center; }
-    .dem-pos-label { color: #7a6c4c; font-size: 11px; letter-spacing: 1px; margin-bottom: 2px; }
-    .dem-pos-value { font-weight: 500; font-size: 18px; color: #c4b894; }
-    .dem-pos-sep { align-self: center; color: #5a4c2c; }
-
-    .dem-reset-btn {
-      background: #1a1408; color: #c9a866; border: 1px solid #6a5028;
-      padding: 6px 14px; font-size: 12px; font-family: inherit; cursor: pointer;
-      border-radius: 3px; letter-spacing: 0.5px;
-      align-self: center; margin-left: 8px;
-    }
-    .dem-reset-btn:hover { background: #2a1f10; border-color: #c9a866; }
+    .dem-wheel-status strong { color: #f0d488; font-weight: 600; font-size: 16px; }
 
     .dem-field-block { margin-bottom: 14px; }
     .dem-label {
@@ -62,6 +51,31 @@
     .dem-input::placeholder, .dem-textarea::placeholder { color: #3a2e18; }
     .dem-input:focus, .dem-textarea:focus {
       outline: none; border-color: #c9a866; background: #14100a;
+    }
+
+    /* Letter animation in solution overlay */
+    .dem-solution-display {
+      width: 100%; box-sizing: border-box;
+      background: #0a0804; color: #c4b894;
+      border: 1px solid #2a1f10; padding: 10px 12px;
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 13px; border-radius: 4px;
+      min-height: 56px;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+    .dem-solution-display:focus-within { border-color: #c9a866; }
+
+    .dem-letter {
+      display: inline-block;
+      animation: dem-letter-spin 0.25s ease-out;
+      transform-origin: center;
+    }
+    @keyframes dem-letter-spin {
+      0%   { transform: rotateY(180deg); opacity: 0; color: #f0d488; }
+      50%  { transform: rotateY(90deg); opacity: 0.6; color: #f0d488; }
+      100% { transform: rotateY(0deg); opacity: 1; color: #c4b894; }
     }
 
     .dem-section {
@@ -104,6 +118,15 @@
       padding: 10px 0; border-bottom: 1px solid #1a1408; font-size: 13px;
     }
     .dem-feed-icon { flex-shrink: 0; font-size: 14px; }
+    .dem-feed-tier {
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 9px; letter-spacing: 1.5px; padding: 2px 6px;
+      border-radius: 3px; flex-shrink: 0; text-transform: uppercase;
+      font-weight: 600;
+    }
+    .dem-feed-tier.demo { background: #1a2a3a; color: #7894b8; border: 1px solid #2a5478; }
+    .dem-feed-tier.vague { background: #2a1f10; color: #a89878; border: 1px solid #4a3a20; }
+    .dem-feed-tier.clear { background: #3a2a08; color: #d4a648; border: 1px solid #6a5028; }
     .dem-feed-time {
       font-family: ui-monospace, 'SF Mono', Menlo, monospace;
       font-size: 11px; color: #7a6c4c; flex-shrink: 0;
@@ -163,9 +186,7 @@
       margin-top: 1.5rem; font-style: italic; color: #7a6c4c; font-size: 13px;
     }
 
-    .dem-loading {
-      text-align: center; padding: 1rem; color: #7a6c4c; font-size: 13px;
-    }
+    .dem-loading { text-align: center; padding: 1rem; color: #7a6c4c; font-size: 13px; }
 
     .dem-footer {
       margin-top: 3rem; padding-top: 1.5rem;
@@ -183,11 +204,11 @@
         <div class="dem-header">
           <div class="dem-classified">CLASSIFIED · AGENT Q</div>
           <h2 class="dem-title">D.E.M. Mission decoder</h2>
-          <p class="dem-subtitle">Drag the inner ring to rotate. Enter the clue you found to decode it.</p>
+          <p class="dem-subtitle">Enter the clue you found to decode it.</p>
         </div>
 
-        <div style="display: flex; justify-content: center; margin-bottom: 1.25rem;">
-          <svg id="dem-wheel" viewBox="-180 -180 360 360" width="320" height="320" style="cursor: grab; touch-action: none; user-select: none;">
+        <div style="display: flex; justify-content: center; margin-bottom: 1rem;">
+          <svg id="dem-wheel" viewBox="-180 -180 360 360" width="320" height="320" style="user-select: none;">
             <defs>
               <radialGradient id="dem-outerWood" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stop-color="#c9974f"/>
@@ -218,22 +239,8 @@
           </svg>
         </div>
 
-        <div class="dem-position-display">
-          <div class="dem-pos-cell">
-            <div class="dem-pos-label">OUTER</div>
-            <div class="dem-pos-value" id="dem-outer-pos">A</div>
-          </div>
-          <div class="dem-pos-sep">→</div>
-          <div class="dem-pos-cell">
-            <div class="dem-pos-label">INNER</div>
-            <div class="dem-pos-value" id="dem-inner-pos">D</div>
-          </div>
-          <div class="dem-pos-sep">·</div>
-          <div class="dem-pos-cell">
-            <div class="dem-pos-label">SHIFT</div>
-            <div class="dem-pos-value" id="dem-shift-pos">+3</div>
-          </div>
-          <button class="dem-reset-btn" id="dem-reset-btn">Reset</button>
+        <div class="dem-wheel-status">
+          <strong>A → D</strong>
         </div>
 
         <div class="dem-section">
@@ -246,7 +253,8 @@
 
           <div class="dem-field-block">
             <label class="dem-label" for="dem-plain">2. Your decoded solution (edit if needed before submitting)</label>
-            <textarea id="dem-plain" class="dem-textarea" rows="2" placeholder="The decoded message will appear here"></textarea>
+            <div class="dem-solution-display" id="dem-plain-display" aria-live="polite"></div>
+            <textarea id="dem-plain" class="dem-textarea" rows="2" placeholder="The decoded message will appear here" style="margin-top: 8px;"></textarea>
           </div>
 
           <div id="dem-name-fields">
@@ -272,9 +280,7 @@
 
         <div class="dem-section">
           <div class="dem-section-title">⚿ INTELLIGENCE FEED ⚿</div>
-          <div id="dem-feed">
-            <div class="dem-loading">Loading transmissions…</div>
-          </div>
+          <div id="dem-feed"><div class="dem-loading">Loading transmissions…</div></div>
           <div class="dem-feed-counter" id="dem-feed-counter"></div>
         </div>
       </div>
@@ -304,27 +310,21 @@
     </div>
   </div>
 
-  <!-- Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.46.1/dist/umd/supabase.min.js"></script>
 
   <script>
   (function() {
-    // ========================================
-    // SUPABASE CONFIGURATION
-    // ========================================
     const SUPABASE_URL = 'https://mzvmpjpucgymilbusatv.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_5TBU9gGTNMJ0tBf0YBw_MA_gjiKfAX_';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const SHIFT = 3;
     const VICTORY = 'DEUS EX MACHINA';
     const LS_NAME_KEY = 'dem_agent_name';
-    const LS_REJECT_KEY = 'dem_rejections';
-    const LS_COOLDOWN_KEY = 'dem_cooldown';
 
     let CLUES = [];
 
-    // Load clues from clues.json (editable on GitHub during conference)
     async function loadClues() {
       try {
         const response = await fetch('clues.json?v=' + Date.now());
@@ -358,18 +358,14 @@
     }
 
     // ========================================
-    // WHEEL
+    // WHEEL — locked at +3 (A → D)
     // ========================================
-    const wheel = document.getElementById('dem-wheel');
-    const innerDisc = document.getElementById('dem-inner-disc');
     const outerRing = document.getElementById('dem-outer-ring');
     const innerRing = document.getElementById('dem-inner-ring');
-    const outerPos = document.getElementById('dem-outer-pos');
-    const innerPos = document.getElementById('dem-inner-pos');
-    const shiftPos = document.getElementById('dem-shift-pos');
+    const innerDisc = document.getElementById('dem-inner-disc');
     const plainEl = document.getElementById('dem-plain');
+    const plainDisplay = document.getElementById('dem-plain-display');
     const cipherEl = document.getElementById('dem-cipher');
-    const resetBtn = document.getElementById('dem-reset-btn');
 
     for (let i = 0; i < 26; i++) {
       const a = (i * 360 / 26) - 90, r = a * Math.PI / 180;
@@ -392,43 +388,46 @@
       innerRing.appendChild(t);
     }
 
-    let currentShift = 3, isDragging = false, dragStartAngle = 0, dragStartShift = 0;
+    // Lock wheel at +3
+    innerDisc.setAttribute('transform', 'rotate(' + (SHIFT * (360/26)) + ')');
 
-    function applyRotation(shift) {
-      currentShift = ((shift % 26) + 26) % 26;
-      innerDisc.setAttribute('transform', 'rotate(' + (currentShift * (360/26)) + ')');
-      outerPos.textContent = 'A';
-      innerPos.textContent = ALPHA[currentShift];
-      shiftPos.textContent = currentShift === 0 ? '0' : '+' + currentShift;
-      syncFromCipher();
-    }
     function shiftLetters(text, n) {
       return text.toUpperCase().split('').map(ch => {
         const i = ALPHA.indexOf(ch);
         return i === -1 ? ch : ALPHA[(i + n + 26) % 26];
       }).join('');
     }
-    function syncFromCipher() { plainEl.value = shiftLetters(cipherEl.value, -currentShift); }
-    function syncFromPlain() { cipherEl.value = shiftLetters(plainEl.value, currentShift); }
 
-    function getAngle(evt) {
-      const rect = wheel.getBoundingClientRect();
-      const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
-      const x = evt.touches ? evt.touches[0].clientX : evt.clientX;
-      const y = evt.touches ? evt.touches[0].clientY : evt.clientY;
-      return Math.atan2(y - cy, x - cx) * 180 / Math.PI;
+    // Animated solution display
+    function renderSolution(text) {
+      plainDisplay.innerHTML = '';
+      for (let i = 0; i < text.length; i++) {
+        const span = document.createElement('span');
+        span.className = 'dem-letter';
+        span.textContent = text[i];
+        span.style.animationDelay = (i * 0.03) + 's';
+        plainDisplay.appendChild(span);
+      }
     }
-    wheel.addEventListener('mousedown', e => { e.preventDefault(); isDragging = true; wheel.style.cursor = 'grabbing'; dragStartAngle = getAngle(e); dragStartShift = currentShift; });
-    window.addEventListener('mousemove', e => { if (!isDragging) return; e.preventDefault(); applyRotation(dragStartShift + Math.round((getAngle(e) - dragStartAngle) / (360/26))); });
-    window.addEventListener('mouseup', () => { isDragging = false; wheel.style.cursor = 'grab'; });
-    wheel.addEventListener('touchstart', e => { e.preventDefault(); isDragging = true; dragStartAngle = getAngle(e); dragStartShift = currentShift; }, { passive: false });
-    window.addEventListener('touchmove', e => { if (!isDragging) return; e.preventDefault(); applyRotation(dragStartShift + Math.round((getAngle(e) - dragStartAngle) / (360/26))); }, { passive: false });
-    window.addEventListener('touchend', () => { isDragging = false; });
+
+    let previousDecoded = '';
+    function syncFromCipher() {
+      const decoded = shiftLetters(cipherEl.value, -SHIFT);
+      plainEl.value = decoded;
+      // Only re-render the visual display if decoded changed
+      if (decoded !== previousDecoded) {
+        renderSolution(decoded);
+        previousDecoded = decoded;
+      }
+    }
+    function syncFromPlain() {
+      cipherEl.value = shiftLetters(plainEl.value, SHIFT);
+      previousDecoded = plainEl.value;
+      renderSolution(plainEl.value);
+    }
 
     cipherEl.addEventListener('input', syncFromCipher);
     plainEl.addEventListener('input', syncFromPlain);
-    resetBtn.addEventListener('click', () => applyRotation(3));
-    applyRotation(3);
 
     // ========================================
     // SUBMISSION SYSTEM
@@ -475,27 +474,30 @@
       feedbackEl.innerHTML = msg;
     }
     function formatTime(d) { return d.toTimeString().slice(0, 5); }
-    function formatTimeFromISO(iso) {
-      return new Date(iso).toTimeString().slice(0, 5);
-    }
+    function formatTimeFromISO(iso) { return new Date(iso).toTimeString().slice(0, 5); }
     function escapeHTML(s) {
       return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
 
+    function getTierForClueId(id) {
+      const c = CLUES.find(c => c.id === id);
+      return c ? c.tier : 'vague';
+    }
+
     function renderFeed() {
       feedEl.innerHTML = '';
-      const submittedIds = new Set(solvedClues.map(c => c.clue_id));
       const totalClues = CLUES.length;
 
       if (solvedClues.length === 0) {
         feedEl.innerHTML = '<div style="text-align:center;color:#3a2e18;font-size:12px;padding:1rem;">No transmissions recovered yet.</div>';
       } else {
-        // Sort newest first
         const sorted = [...solvedClues].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
         sorted.forEach(c => {
+          const tier = getTierForClueId(c.clue_id);
           const item = document.createElement('div');
           item.className = 'dem-feed-item';
           item.innerHTML = '<span class="dem-feed-icon">🔓</span>' +
+            '<span class="dem-feed-tier ' + tier + '">' + tier + '</span>' +
             '<span class="dem-feed-time">' + formatTimeFromISO(c.created_at) + '</span>' +
             '<span class="dem-feed-solution">' + escapeHTML(c.solution) + '</span>' +
             '<span class="dem-feed-name">— ' + escapeHTML(c.agent_name) + '</span>';
@@ -539,34 +541,10 @@
       return savedName;
     }
 
-    function getCooldown() {
-      const v = localStorage.getItem(LS_COOLDOWN_KEY);
-      return v ? parseInt(v, 10) : 0;
-    }
-    function getRejectCount() {
-      const v = localStorage.getItem(LS_REJECT_KEY);
-      return v ? parseInt(v, 10) : 0;
-    }
-    function incrementReject() {
-      const n = getRejectCount() + 1;
-      localStorage.setItem(LS_REJECT_KEY, String(n));
-      if (n >= 3) {
-        localStorage.setItem(LS_COOLDOWN_KEY, String(Date.now() + 30 * 60 * 1000));
-        localStorage.setItem(LS_REJECT_KEY, '0');
-      }
-    }
-
     async function handleSubmit() {
       feedbackEl.className = 'dem-feedback';
       feedbackEl.innerHTML = '';
 
-      const cooldown = getCooldown();
-      if (Date.now() < cooldown) {
-        const sec = Math.ceil((cooldown - Date.now()) / 1000);
-        const min = Math.floor(sec / 60), s = sec % 60;
-        showFeedback('error', '⏳ <strong>Cooldown active.</strong> Try again in ' + min + ':' + String(s).padStart(2,'0') + '.');
-        return;
-      }
       const name = getName();
       if (!name) {
         showFeedback('warning', '⚠️ Please enter your first name and surname before submitting.');
@@ -590,18 +568,15 @@
         return;
       }
 
-      // Victory exact match
       if (normSub === normVictory) {
         submitBtn.disabled = true;
         try {
           const nowISO = new Date().toISOString();
-          const { error } = await supabase
+          await supabase
             .from('mission_state')
             .update({ solved_by: name, solved_at: nowISO })
             .eq('id', 1)
             .is('solved_by', null);
-          if (error) throw error;
-          // Re-check whether we actually got it (someone else might have raced us)
           const { data: stateData } = await supabase.from('mission_state').select('*').eq('id', 1).single();
           if (stateData && stateData.solved_by) {
             missionSolved = stateData;
@@ -615,14 +590,11 @@
         return;
       }
 
-      // Fuzzy on victory
       if (isFuzzyMatch(submission, VICTORY) === 'fuzzy') {
-        incrementReject();
         showFeedback('warning', '⚠️ <strong>Are you sure you didn\'t misspell?</strong> Re-check your letters against the wheel.');
         return;
       }
 
-      // Exact clue match
       for (let i = 0; i < CLUES.length; i++) {
         const c = CLUES[i];
         if (normalize(c.sol) === normSub) {
@@ -640,6 +612,8 @@
             showFeedback('success', '🔓 <strong>Transmission confirmed.</strong> "' + escapeHTML(c.sol) + '" added to the intelligence feed.');
             cipherEl.value = '';
             plainEl.value = '';
+            renderSolution('');
+            previousDecoded = '';
           } catch (err) {
             console.error(err);
             showFeedback('error', '❌ Connection error. Try again.');
@@ -649,24 +623,18 @@
         }
       }
 
-      // Fuzzy on any clue
       for (let i = 0; i < CLUES.length; i++) {
         if (isFuzzyMatch(submission, CLUES[i].sol) === 'fuzzy') {
-          incrementReject();
           showFeedback('warning', '⚠️ <strong>Are you sure you didn\'t misspell?</strong> Re-check your letters and the decoded result against your wheel.');
           return;
         }
       }
 
-      incrementReject();
       showFeedback('error', '❌ <strong>Unrecognized transmission.</strong> Re-check the letters of your clue. A villain may have planted a false one.');
     }
 
     submitBtn.addEventListener('click', handleSubmit);
 
-    // ========================================
-    // INITIAL LOAD + REAL-TIME SUBSCRIPTIONS
-    // ========================================
     async function fetchInitialState() {
       try {
         const [{ data: subs }, { data: state }] = await Promise.all([
