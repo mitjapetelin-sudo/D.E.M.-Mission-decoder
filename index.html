@@ -91,7 +91,6 @@
       outline: none; border-color: #c9a866; background: #14100a;
     }
 
-    /* Merged solution field: looks like a textarea, holds the letter animation */
     .dem-solution-field {
       width: 100%; box-sizing: border-box;
       background: #0a0804; color: #c4b894;
@@ -140,12 +139,16 @@
       margin-top: 14px; font-weight: 800; text-transform: uppercase;
       display: block;
       box-shadow: 0 0 24px rgba(212, 166, 72, 0.5);
+      transition: background 0.3s, box-shadow 0.3s;
     }
-    .dem-submit-btn:hover { background: #f0d488; box-shadow: 0 0 32px rgba(212, 166, 72, 0.7); }
-    .dem-submit-btn:active { background: #b88a30; }
+    .dem-submit-btn:hover:not(:disabled) { background: #f0d488; box-shadow: 0 0 32px rgba(212, 166, 72, 0.7); }
+    .dem-submit-btn:active:not(:disabled) { background: #b88a30; }
     .dem-submit-btn:disabled {
-      background: #4a3618; color: #2a1f10;
-      cursor: not-allowed; box-shadow: none;
+      background: #2a1f10 !important;
+      color: #5a4c30 !important;
+      border-color: #3a2e18 !important;
+      cursor: not-allowed;
+      box-shadow: none;
     }
 
     .dem-feedback {
@@ -156,6 +159,16 @@
     .dem-feedback.warning { background: #2a1f08; border: 1px solid #a87838; color: #d4c084; display: block; }
     .dem-feedback.error { background: #2a140e; border: 1px solid #a84838; color: #d49888; display: block; }
     .dem-feedback.info { background: #0e1f2a; border: 1px solid #4878a8; color: #98b4d4; display: block; }
+    .dem-feedback.lockout {
+      background: #2a140e; border: 1px solid #a84838; color: #e8b4a0; display: block;
+      text-align: center;
+    }
+    .dem-feedback.lockout strong { color: #f0c8a0; font-size: 15px; }
+    .dem-countdown {
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 24px; font-weight: 700; color: #f0c8a0;
+      letter-spacing: 3px; margin: 8px 0;
+    }
 
     .dem-feed-item {
       display: flex; align-items: baseline; gap: 10px;
@@ -373,6 +386,31 @@
     const BASE_ROTATION = SHIFT * (360 / 26);
     const VICTORY = 'DEUS EX MACHINA';
     const LS_NAME_KEY = 'dem_agent_name';
+    const LS_STRIKES_KEY = 'dem_strikes';
+    const LS_COOLDOWN_KEY = 'dem_cooldown_until';
+    const MAX_STRIKES = 3;
+    const COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
+
+    // ========================================
+    // ADMIN RESET via URL parameter
+    // Visit ?reset=q to clear strikes and cooldown on current device
+    // ========================================
+    (function checkResetParam() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('reset') === 'q') {
+        localStorage.removeItem(LS_STRIKES_KEY);
+        localStorage.removeItem(LS_COOLDOWN_KEY);
+        // Strip the query param so reload doesn't keep showing reset
+        const cleanUrl = window.location.origin + window.location.pathname;
+        history.replaceState({}, document.title, cleanUrl);
+        // Brief confirmation banner
+        const banner = document.createElement('div');
+        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#1a3a1a;color:#c8e8c8;padding:8px;text-align:center;font-family:monospace;font-size:12px;z-index:9999;border-bottom:1px solid #4a8a4a;';
+        banner.textContent = '✓ Cooldown and strikes cleared on this device.';
+        document.body.appendChild(banner);
+        setTimeout(() => banner.remove(), 4000);
+      }
+    })();
 
     let CLUES = [];
     const ownSubmissionIds = new Set();
@@ -456,7 +494,6 @@
       } else {
         innerDisc.classList.remove('victory-spin');
       }
-
       wheelStatus.classList.add('spinning');
 
       const intermediate = targetRotation + (Math.random() * 360 - 180);
@@ -505,17 +542,9 @@
       }).join('');
     }
 
-    // ========================================
-    // MERGED SOLUTION FIELD
-    // contenteditable div that:
-    // - Auto-fills with decoded letters (with spin animation) when cipher changes
-    // - Allows direct typing/pasting
-    // - Provides the value for submission
-    // ========================================
     function getSolutionValue() {
       return plainEl.innerText || plainEl.textContent || '';
     }
-
     function setSolutionValueAnimated(text) {
       plainEl.innerHTML = '';
       for (let i = 0; i < text.length; i++) {
@@ -527,28 +556,14 @@
       }
     }
 
-    function setSolutionValuePlain(text) {
-      plainEl.textContent = text;
-    }
-
-    // Track whether the user is typing directly in the solution field
     let userTypingInSolution = false;
-
     plainEl.addEventListener('focus', () => { userTypingInSolution = true; });
     plainEl.addEventListener('blur', () => { userTypingInSolution = false; });
-    plainEl.addEventListener('input', () => {
-      // When user types directly, the value is what they typed.
-      // Don't sync to cipher field (the cipher field is for input, not derived)
-      // We just leave it alone — what's in plainEl is now the source of truth
-    });
 
-    // Cipher input → decode → animate into solution field
     let previousDecoded = '';
     cipherEl.addEventListener('input', () => {
       const decoded = shiftLetters(cipherEl.value, -SHIFT);
       if (decoded !== previousDecoded) {
-        // Only auto-populate if the user isn't actively typing in the solution
-        // OR if the cipher is empty (clearing should clear both)
         if (!userTypingInSolution || cipherEl.value === '') {
           setSolutionValueAnimated(decoded);
         }
@@ -557,7 +572,7 @@
     });
 
     // ========================================
-    // SUBMISSION SYSTEM
+    // SUBMISSION SYSTEM + STRIKE/COOLDOWN
     // ========================================
     const firstnameEl = document.getElementById('dem-firstname');
     const surnameEl = document.getElementById('dem-surname');
@@ -575,6 +590,94 @@
     let solvedClues = [];
     let missionSolved = null;
     let savedName = localStorage.getItem(LS_NAME_KEY) || '';
+    let cooldownInterval = null;
+
+    function getStrikes() {
+      return parseInt(localStorage.getItem(LS_STRIKES_KEY) || '0', 10);
+    }
+    function setStrikes(n) {
+      if (n <= 0) localStorage.removeItem(LS_STRIKES_KEY);
+      else localStorage.setItem(LS_STRIKES_KEY, String(n));
+    }
+    function getCooldownUntil() {
+      return parseInt(localStorage.getItem(LS_COOLDOWN_KEY) || '0', 10);
+    }
+    function setCooldownUntil(ts) {
+      if (!ts) localStorage.removeItem(LS_COOLDOWN_KEY);
+      else localStorage.setItem(LS_COOLDOWN_KEY, String(ts));
+    }
+    function isInCooldown() {
+      return Date.now() < getCooldownUntil();
+    }
+    function clearStrikesAndCooldown() {
+      setStrikes(0);
+      setCooldownUntil(0);
+    }
+
+    function recordStrike() {
+      const newCount = getStrikes() + 1;
+      setStrikes(newCount);
+      if (newCount >= MAX_STRIKES) {
+        setCooldownUntil(Date.now() + COOLDOWN_MS);
+        setStrikes(0); // reset strike count when cooldown begins
+        startCooldownDisplay();
+        return 'lockout';
+      } else if (newCount === MAX_STRIKES - 1) {
+        return 'warning';
+      }
+      return 'ok';
+    }
+
+    function formatDuration(ms) {
+      const sec = Math.max(0, Math.ceil(ms / 1000));
+      const min = Math.floor(sec / 60);
+      const s = sec % 60;
+      return min + ':' + String(s).padStart(2, '0');
+    }
+
+    function showLockoutMessage() {
+      const remaining = getCooldownUntil() - Date.now();
+      feedbackEl.className = 'dem-feedback lockout';
+      feedbackEl.innerHTML =
+        '⏳ <strong>COOLDOWN ACTIVE</strong><br/>' +
+        '<div class="dem-countdown" id="dem-countdown">' + formatDuration(remaining) + '</div>' +
+        'Three failed attempts triggered a 30-minute cooldown.<br/>' +
+        '<span style="font-size: 11px; color: #c4a888;">This is a good time to talk to other agents.</span>';
+    }
+
+    function startCooldownDisplay() {
+      submitBtn.disabled = true;
+      showLockoutMessage();
+      if (cooldownInterval) clearInterval(cooldownInterval);
+      cooldownInterval = setInterval(() => {
+        const remaining = getCooldownUntil() - Date.now();
+        if (remaining <= 0) {
+          stopCooldownDisplay();
+          return;
+        }
+        const countdownEl = document.getElementById('dem-countdown');
+        if (countdownEl) {
+          countdownEl.textContent = formatDuration(remaining);
+        }
+      }, 1000);
+    }
+
+    function stopCooldownDisplay() {
+      if (cooldownInterval) {
+        clearInterval(cooldownInterval);
+        cooldownInterval = null;
+      }
+      submitBtn.disabled = false;
+      clearStrikesAndCooldown();
+      feedbackEl.className = 'dem-feedback success';
+      feedbackEl.innerHTML = '✓ <strong>Cooldown lifted.</strong> Ready to receive transmissions.';
+      setTimeout(() => {
+        if (feedbackEl.classList.contains('success') && feedbackEl.innerHTML.includes('Cooldown lifted')) {
+          feedbackEl.className = 'dem-feedback';
+          feedbackEl.innerHTML = '';
+        }
+      }, 5000);
+    }
 
     function loadName() {
       if (savedName) {
@@ -613,7 +716,6 @@
     function renderFeed() {
       feedEl.innerHTML = '';
       const totalClues = CLUES.length;
-
       if (solvedClues.length === 0) {
         feedEl.innerHTML = '<div style="text-align:center;color:#3a2e18;font-size:12px;padding:1rem;">No transmissions recovered yet.</div>';
       } else {
@@ -630,7 +732,6 @@
           feedEl.appendChild(item);
         });
       }
-
       const remaining = totalClues - solvedClues.length;
       if (remaining > 0) {
         for (let i = 0; i < Math.min(remaining, 3); i++) {
@@ -673,9 +774,25 @@
       previousDecoded = '';
     }
 
+    // ========================================
+    // Returns a feedback HTML fragment to append after a strike message
+    // ========================================
+    function getStrikeWarning(strikeResult) {
+      if (strikeResult === 'warning') {
+        return '<br/><br/><span style="color: #f0c8a0; font-weight: 600;">⚠️ One more failed attempt will trigger a 30-minute cooldown.</span>';
+      }
+      return '';
+    }
+
     async function handleSubmit() {
       feedbackEl.className = 'dem-feedback';
       feedbackEl.innerHTML = '';
+
+      // Cooldown gate
+      if (isInCooldown()) {
+        startCooldownDisplay();
+        return;
+      }
 
       const name = getName();
       if (!name) {
@@ -691,6 +808,7 @@
       const normSub = normalize(submission);
       const normVictory = normalize(VICTORY);
 
+      // Mission already solved — NOT a strike
       if (missionSolved) {
         if (normSub === normVictory) {
           showFeedback('info', '✓ <strong>Mission already solved by ' + escapeHTML(missionSolved.solved_by) + '</strong> at ' + formatTimeFromISO(missionSolved.solved_at) + '. Bring your jar lid to the gala.');
@@ -700,6 +818,7 @@
         return;
       }
 
+      // VICTORY
       if (normSub === normVictory) {
         submitBtn.disabled = true;
         try {
@@ -712,6 +831,7 @@
           const { data: stateData } = await supabase.from('mission_state').select('*').eq('id', 1).single();
           if (stateData && stateData.solved_by) {
             missionSolved = stateData;
+            clearStrikesAndCooldown();
             victorySpin(() => {
               showVictory(stateData.solved_by, formatTimeFromISO(stateData.solved_at));
             });
@@ -725,21 +845,31 @@
         return;
       }
 
+      // Fuzzy match on victory phrase — STRIKE
       if (isFuzzyMatch(submission, VICTORY) === 'fuzzy') {
-        showFeedback('warning', '⚠️ <strong>Are you sure you didn\'t misspell?</strong> Re-check your letters against the wheel.');
+        const strikeResult = recordStrike();
+        if (strikeResult === 'lockout') return; // showLockoutMessage already called
         wiggleWheel();
+        showFeedback('warning',
+          '⚠️ <strong>Are you sure you didn\'t misspell?</strong> Re-check your letters against the wheel.' +
+          getStrikeWarning(strikeResult)
+        );
         return;
       }
 
+      // Exact clue match
       for (let i = 0; i < CLUES.length; i++) {
         const c = CLUES[i];
         if (normalize(c.sol) === normSub) {
+          // Already solved — NOT a strike, show who solved it
           const existing = solvedClues.find(s => s.clue_id === c.id);
           if (existing) {
-            showFeedback('info', '✓ This transmission was already recovered by <strong>' + escapeHTML(existing.agent_name) + '</strong> at ' + formatTimeFromISO(existing.created_at) + '.');
-            wiggleWheel();
+            showFeedback('info',
+              '✓ This transmission was already recovered by <strong>' + escapeHTML(existing.agent_name) + '</strong> at ' + formatTimeFromISO(existing.created_at) + '.'
+            );
             return;
           }
+          // New successful submission
           submitBtn.disabled = true;
           try {
             const { data: insertData, error } = await supabase
@@ -751,6 +881,8 @@
             if (insertData && insertData.id) {
               ownSubmissionIds.add(insertData.id);
             }
+            // Reset strikes on success
+            setStrikes(0);
             showFeedback('success', '🔓 <strong>Transmission confirmed.</strong> "' + escapeHTML(c.sol) + '" added to the intelligence feed.');
             clearInputFields();
             spinWheel({ rotations: 2 + Math.floor(Math.random() * 3) });
@@ -764,16 +896,28 @@
         }
       }
 
+      // Fuzzy match on any clue — STRIKE
       for (let i = 0; i < CLUES.length; i++) {
         if (isFuzzyMatch(submission, CLUES[i].sol) === 'fuzzy') {
-          showFeedback('warning', '⚠️ <strong>Are you sure you didn\'t misspell?</strong> Re-check your letters and the decoded result against your wheel.');
+          const strikeResult = recordStrike();
+          if (strikeResult === 'lockout') return;
           wiggleWheel();
+          showFeedback('warning',
+            '⚠️ <strong>Are you sure you didn\'t misspell?</strong> Re-check your letters and the decoded result against your wheel.' +
+            getStrikeWarning(strikeResult)
+          );
           return;
         }
       }
 
-      showFeedback('error', '❌ <strong>Unrecognized transmission.</strong> Re-check the letters of your clue. A villain may have planted a false one.');
+      // No match — STRIKE
+      const strikeResult = recordStrike();
+      if (strikeResult === 'lockout') return;
       wiggleWheel();
+      showFeedback('error',
+        '❌ <strong>Unrecognized transmission.</strong> Re-check the letters of your clue. A villain may have planted a false one.' +
+        getStrikeWarning(strikeResult)
+      );
     }
 
     submitBtn.addEventListener('click', handleSubmit);
@@ -827,6 +971,10 @@
       await loadClues();
       await fetchInitialState();
       subscribeRealtime();
+      // If user arrives mid-cooldown, show it immediately
+      if (isInCooldown()) {
+        startCooldownDisplay();
+      }
     })();
   })();
   </script>
